@@ -10,3 +10,4 @@ venv/
 # OS/editor noise
 .DS_Store
 *.swp
+backend/telegram_poll_bridge.py
