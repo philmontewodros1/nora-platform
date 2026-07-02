@@ -65,6 +65,11 @@ curl -X POST http://localhost:8000/orders -H "Content-Type: application/json" -d
 
 ## Deploy online for free
 
+**Live now:** the platform is deployed at **https://nora-platform.onrender.com**
+(API + admin dashboard at `/admin` + landing page at `/`), with the Telegram bot
+`@Noraeth_bot` wired via webhook, backed by a permanent free **Neon** Postgres
+database (so data survives redeploys).
+
 **Read [`DEPLOY-FREE-ONLINE.md`](DEPLOY-FREE-ONLINE.md)** — it's the accurate, current guide
 (Render changed their free tier partway through this build, so the original three-service plan no
 longer works for free). Summary: deploy `backend/` as one Render free web service, use Neon for
