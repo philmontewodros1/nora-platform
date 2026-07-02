@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nora admin</title>
+<style>
+  :root {
+    --teal: #0F6E56; --teal-d: #085041; --coral: #D85A30;
+    --bg: #F1EFE8; --border: #D3D1C7; --text: #2C2C2A; --muted: #5F5E5A;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, Segoe UI, Roboto, sans-serif; background: var(--bg); margin: 0; color: var(--text); }
+  header { background: var(--teal-d); color: white; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10; }
+  header h1 { font-size: 18px; margin: 0; font-weight: 600; }
+  nav.tabs { display: flex; gap: 4px; flex-wrap: wrap; max-width: 1000px; margin: 16px auto 0; padding: 0 24px; }
+  nav.tabs button { background: white; color: var(--muted); border: 1px solid var(--border); }
+  nav.tabs button.active { background: var(--teal); color: white; border-color: var(--teal); }
+  main { padding: 16px 24px 48px; max-width: 1000px; margin: 0 auto; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .stat-card { background: white; border-radius: 10px; padding: 14px; border: 1px solid var(--border); }
+  .stat-card .label { font-size: 12px; color: var(--muted); }
+  .stat-card .value { font-size: 24px; font-weight: 600; margin-top: 4px; }
+  .card { background: white; border-radius: 10px; border: 1px solid var(--border); padding: 16px 20px; margin-bottom: 20px; }
+  .card h2 { font-size: 15px; margin: 0 0 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: var(--muted); font-weight: 500; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  td { padding: 7px 8px; border-bottom: 1px solid var(--bg); }
+  .badge { padding: 2px 9px; border-radius: 20px; font-size: 12px; }
+  .badge.pending { background: #FAEEDA; color: #854F0B; }
+  .badge.assigned, .badge.picked_up { background: #E6F1FB; color: #0C447C; }
+  .badge.delivered { background: #E1F5EE; color: #085041; }
+  .badge.cancelled { background: #FCEBEB; color: #791F1F; }
+  form.inline { display: flex; gap: 8px; flex-wrap: wrap; align-items: end; margin-top: 12px; }
+  form.inline input, form.inline select { padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; }
+  form.inline label { font-size: 11px; color: var(--muted); display: block; }
+  button { background: var(--teal); color: white; border: none; padding: 7px 13px; border-radius: 6px; font-size: 13px; cursor: pointer; }
+  button:hover { background: var(--teal-d); }
+  button.small { padding: 4px 9px; font-size: 12px; }
+  button.danger { background: var(--coral); }
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: end; margin-bottom: 12px; }
+  #login-screen { max-width: 320px; margin: 80px auto; text-align: center; }
+  #login-screen input { display: block; width: 100%; margin-bottom: 10px; padding: 8px; border: 1px solid var(--border); border-radius: 6px; }
+  .hidden { display: none; }
+  .error { color: #A32D2D; font-size: 13px; margin-top: 8px; }
+  .muted { color: var(--muted); font-size: 12px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 720px) { .grid2 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <h2>Nora admin login</h2>
+  <input id="login-user" placeholder="Username" value="admin">
+  <input id="login-pass" placeholder="Password" type="password">
+  <button onclick="login()">Log in</button>
+  <p class="error" id="login-error"></p>
+</div>
+
+<div id="app" class="hidden">
+  <header>
+    <h1>Nora admin</h1>
+    <button onclick="logout()" style="background:transparent;border:1px solid white;">Log out</button>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button class="active" data-tab="orders" onclick="showTab('orders')">Orders</button>
+    <button data-tab="shops" onclick="showTab('shops')">Shops &amp; stock</button>
+    <button data-tab="riders" onclick="showTab('riders')">Riders</button>
+    <button data-tab="deposits" onclick="showTab('deposits')">Deposits</button>
+    <button data-tab="reports" onclick="showTab('reports')">Reports</button>
+  </nav>
+
+  <main>
+    <div class="stats" id="stats"></div>
+
+    <section id="tab-orders" class="tab">
+      <div class="card">
+        <h2>Live orders</h2>
+        <div class="filters">
+          <div><label>Status</label><select id="f-status" onchange="loadOrders()"></select></div>
+          <div><label>Product</label><select id="f-product" onchange="loadOrders()"></select></div>
+          <div><label>Rider</label><select id="f-rider" onchange="loadOrders()"></select></div>
+          <div><label>Shop</label><select id="f-shop" onchange="loadOrders()"></select></div>
+          <button onclick="loadOrders()">Apply</button>
+          <button class="small" onclick="clearFilters()">Clear</button>
+        </div>
+        <table>
+          <thead><tr><th>#</th><th>Product</th><th>Status</th><th>Paid</th><th>Method</th><th>Total</th><th>Shop</th><th>Rider</th><th></th></tr></thead>
+          <tbody id="orders-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="tab-shops" class="tab hidden">
+      <div class="grid2">
+        <div class="card">
+          <h2>Add a shop</h2>
+          <form class="inline" onsubmit="createShop(event)">
+            <div><label>Name</label><input id="shop-name" required></div>
+            <div><label>Phone</label><input id="shop-phone" placeholder="+251..."></div>
+            <div><label>Area</label><input id="shop-area"></div>
+            <div><label>Latitude</label><input id="shop-lat" type="number" step="0.0001"></div>
+            <div><label>Longitude</label><input id="shop-lng" type="number" step="0.0001"></div>
+            <button type="submit">Add shop</button>
+          </form>
+        </div>
+        <div class="card">
+          <h2>Update stock (morning check)</h2>
+          <form class="inline" onsubmit="submitStock(event)">
+            <div><label>Shop</label><select id="stock-shop"></select></div>
+            <div><label>Product</label><select id="stock-product"><option value="gas">Gas</option><option value="water">Water</option><option value="butane">Butane</option></select></div>
+            <div><label>Brand</label><input id="stock-brand" placeholder="NOC / Ghion"></div>
+            <div><label>Size</label><input id="stock-size" placeholder="12kg / jar"></div>
+            <div><label>Quantity</label><input id="stock-qty" type="number" required></div>
+            <button type="submit">Save</button>
+          </form>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Shops</h2>
+        <table>
+          <thead><tr><th>Shop</th><th>Area</th><th>Phone</th><th>Mismatches</th><th>Active</th></tr></thead>
+          <tbody id="shops-body"></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h2>All stock</h2>
+        <table>
+          <thead><tr><th>Shop</th><th>Product</th><th>Brand</th><th>Size</th><th>Qty</th><th>Confidence</th></tr></thead>
+          <tbody id="stock-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="tab-riders" class="tab hidden">
+      <div class="card">
+        <h2>Add a rider</h2>
+        <form class="inline" onsubmit="createRider(event)">
+          <div><label>Name</label><input id="rider-name" required></div>
+          <div><label>Phone</label><input id="rider-phone" placeholder="+251..." required></div>
+          <div><label>Telegram ID</label><input id="rider-tg" placeholder="from @userinfobot"></div>
+          <div><label>WhatsApp ID</label><input id="rider-wa" placeholder="251..."></div>
+          <button type="submit">Add rider</button>
+        </form>
+        <p class="muted">A rider's Telegram ID comes from messaging @userinfobot. WhatsApp ID is their number in international format without +.</p>
+      </div>
+      <div class="card">
+        <h2>Riders</h2>
+        <table>
+          <thead><tr><th>ID</th><th>Name</th><th>Phone</th><th>Telegram</th><th>WhatsApp</th><th>On duty</th><th></th></tr></thead>
+          <tbody id="riders-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="tab-deposits" class="tab hidden">
+      <div class="card">
+        <h2>Deposit reconciliation</h2>
+        <p class="muted">Orders holding a refundable deposit. "Empty returned" = the deposit can be refunded.</p>
+        <table>
+          <thead><tr><th>Order</th><th>Product</th><th>Deposit (ETB)</th><th>Empty returned</th><th>Status</th></tr></thead>
+          <tbody id="deposits-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="tab-reports" class="tab hidden">
+      <div class="card">
+        <h2>Revenue by category</h2>
+        <table>
+          <thead><tr><th>Product</th><th>Orders</th><th>Revenue (ETB)</th></tr></thead>
+          <tbody id="rep-product"></tbody>
+        </table>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <h2>Shop performance</h2>
+          <table>
+            <thead><tr><th>Shop</th><th>Orders</th><th>Revenue (ETB)</th></tr></thead>
+            <tbody id="rep-shops"></tbody>
+          </table>
+        </div>
+        <div class="card">
+          <h2>Rider performance</h2>
+          <table>
+            <thead><tr><th>Rider</th><th>Delivered</th><th>Earnings (ETB)</th></tr></thead>
+            <tbody id="rep-riders"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Delivery time</h2>
+        <p id="rep-avg" class="muted"></p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+const API = window.location.origin.replace(/\/admin\/?$/, '');
+let authHeader = '';
+
+function login() {
+  const user = document.getElementById('login-user').value;
+  const pass = document.getElementById('login-pass').value;
+  authHeader = 'Basic ' + btoa(user + ':' + pass);
+  fetch(API + '/admin/stats', { headers: { Authorization: authHeader } })
+    .then(r => { if (!r.ok) throw new Error('bad'); sessionStorage.setItem('nora_auth', authHeader); showApp(); })
+    .catch(() => { document.getElementById('login-error').textContent = 'Invalid username or password.'; });
+}
+function logout() { sessionStorage.removeItem('nora_auth'); location.reload(); }
+function showApp() {
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  loadStats(); loadOrders(); loadShops(); loadRiders(); loadDeposits(); loadReports();
+}
+function authedFetch(path, opts = {}) {
+  opts.headers = Object.assign({ Authorization: authHeader, 'Content-Type': 'application/json' }, opts.headers || {});
+  return fetch(API + path, opts);
+}
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach(s => s.classList.add('hidden'));
+  document.getElementById('tab-' + name).classList.remove('hidden');
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+}
+
+function loadStats() {
+  authedFetch('/admin/stats').then(r => r.json()).then(s => {
+    document.getElementById('stats').innerHTML = `
+      <div class="stat-card"><div class="label">Total orders</div><div class="value">${s.total_orders}</div></div>
+      <div class="stat-card"><div class="label">Active riders</div><div class="value">${s.active_riders}</div></div>
+      <div class="stat-card"><div class="label">Pending</div><div class="value">${s.pending_orders}</div></div>
+      <div class="stat-card"><div class="label">Revenue (ETB)</div><div class="value">${(s.revenue_etb||0).toFixed(0)}</div></div>`;
+  });
+}
+
+function loadOrders() {
+  const p = new URLSearchParams();
+  ['f-status','f-product','f-rider','f-shop'].forEach(id => {
+    const v = document.getElementById(id).value; if (v) p.set(id.replace('f-',''), v);
+  });
+  authedFetch('/admin/orders?' + p.toString()).then(r => r.json()).then(orders => {
+    document.getElementById('orders-body').innerHTML = orders.map(o => `
+      <tr>
+        <td>#${o.id}</td>
+        <td>${o.product} ${o.size||''}</td>
+        <td><span class="badge ${o.status}">${o.status}</span></td>
+        <td>${o.paid ? 'Yes':'No'}</td>
+        <td>${o.payment_method||'-'}</td>
+        <td>${o.total_price.toFixed(0)}</td>
+        <td>${o.shop_id||'-'}</td>
+        <td>${o.rider_id||'-'}</td>
+        <td>${o.status==='pending' ? `<button class="small" onclick="reoffer(${o.id})">Re-offer</button>` : ''}</td>
+      </tr>`).join('');
+  });
+}
+function clearFilters() { ['f-status','f-product','f-rider','f-shop'].forEach(id => document.getElementById(id).value=''); loadOrders(); }
+function reoffer(id) { authedFetch('/admin/orders/'+id+'/reoffer', {method:'POST'}).then(()=>loadOrders()); }
+
+function loadShops() {
+  fetch(API + '/shops').then(r => r.json()).then(shops => {
+    const opts = shops.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    document.getElementById('shops-body').innerHTML = shops.map(s => `
+      <tr><td>${s.name}</td><td>${s.area||''}</td><td>${s.phone||''}</td><td>${s.mismatch_count}</td><td>${s.active?'yes':'no'}</td></tr>`).join('');
+    document.getElementById('stock-shop').innerHTML = opts;
+    const sf = document.getElementById('f-shop'); const cur = sf.value; sf.innerHTML = '<option value="">All</option>'+opts; sf.value = cur;
+  });
+  authedFetch('/admin/stock').then(r => r.json()).then(rows => {
+    document.getElementById('stock-body').innerHTML = rows.map(s => `
+      <tr><td>${s.shop_name}</td><td>${s.product}</td><td>${s.brand||''}</td><td>${s.size||''}</td><td>${s.quantity}</td><td>${s.confidence}</td></tr>`).join('');
+  });
+}
+function createShop(e) {
+  e.preventDefault();
+  authedFetch('/shops', { method:'POST', body: JSON.stringify({
+    name: val('shop-name'), phone: val('shop-phone')||null, area: val('shop-area')||null,
+    latitude: num('shop-lat'), longitude: num('shop-lng') })}).then(()=>{ loadShops(); e.target.reset(); });
+}
+function submitStock(e) {
+  e.preventDefault();
+  authedFetch('/shops/'+document.getElementById('stock-shop').value+'/stock', { method:'POST', body: JSON.stringify([{
+    product: val('stock-product'), brand: val('stock-brand')||null, size: val('stock-size')||null,
+    quantity: parseInt(val('stock-qty'),10), confidence:'confirmed' }])}).then(()=>{ loadShops(); alert('Stock updated'); });
+}
+
+function loadRiders() {
+  authedFetch('/riders').then(r => r.json()).then(riders => {
+    document.getElementById('riders-body').innerHTML = riders.map(r => `
+      <tr><td>${r.id}</td><td>${r.name}</td><td>${r.phone}</td><td>${r.telegram_id||'-'}</td><td>${r.whatsapp_id||'-'}</td>
+      <td>${r.on_duty?'yes':'no'}</td>
+      <td><button class="small" onclick="toggleDuty(${r.id}, ${!r.on_duty})">${r.on_duty?'Off duty':'On duty'}</button></td></tr>`).join('');
+    const rf = document.getElementById('f-rider'); const cur = rf.value; rf.innerHTML = '<option value="">All</option>' + riders.map(r=>`<option value="${r.id}">${r.name}</option>`).join(''); rf.value = cur;
+  });
+}
+function createRider(e) {
+  e.preventDefault();
+  authedFetch('/riders', { method:'POST', body: JSON.stringify({
+    name: val('rider-name'), phone: val('rider-phone'), telegram_id: val('rider-tg')||null, whatsapp_id: val('rider-wa')||null })})
+    .then(()=>{ loadRiders(); e.target.reset(); });
+}
+function toggleDuty(id, on) { fetch(`${API}/riders/${id}/duty?on_duty=${on}`,{method:'POST'}).then(()=>loadRiders()); }
+
+function loadDeposits() {
+  authedFetch('/admin/deposits').then(r => r.json()).then(rows => {
+    document.getElementById('deposits-body').innerHTML = rows.map(o => `
+      <tr><td>#${o.order_id}</td><td>${o.product} ${o.size||''}</td><td>${o.deposit_fee.toFixed(0)}</td>
+      <td>${o.empty_returned?'yes':'no'}</td><td>${o.status}</td></tr>`).join('');
+  });
+}
+function loadReports() {
+  authedFetch('/admin/report').then(r => r.json()).then(rep => {
+    document.getElementById('rep-product').innerHTML = rep.revenue_by_product.map(p =>
+      `<tr><td>${p.product}</td><td>${p.orders}</td><td>${p.revenue_etb.toFixed(0)}</td></tr>`).join('');
+    document.getElementById('rep-shops').innerHTML = rep.shop_performance.map(s =>
+      `<tr><td>${s.name}</td><td>${s.orders}</td><td>${s.revenue_etb.toFixed(0)}</td></tr>`).join('');
+    document.getElementById('rep-riders').innerHTML = rep.rider_performance.map(r =>
+      `<tr><td>${r.name}</td><td>${r.delivered}</td><td>${r.earnings_etb.toFixed(0)}</td></tr>`).join('') || '<tr><td colspan=3 class="muted">No deliveries yet</td></tr>';
+    document.getElementById('rep-avg').textContent = rep.avg_delivery_minutes != null
+      ? `Average delivery time: ${rep.avg_delivery_minutes} min across ${rep.delivered_count} delivered orders.`
+      : 'No completed deliveries with timing data yet.';
+  });
+}
+
+function val(id){ return document.getElementById(id).value.trim(); }
+function num(id){ const v = val(id); return v===''?null:parseFloat(v); }
+
+window.onload = () => {
+  const saved = sessionStorage.getItem('nora_auth');
+  if (saved) { authHeader = saved; showApp(); }
+  const st = document.getElementById('f-status');
+  ['','pending','assigned','picked_up','delivered','cancelled'].forEach(s => { const o=document.createElement('option'); o.value=s; o.text=s||'All'; st.add(o); });
+  const sp = document.getElementById('f-product');
+  ['','gas','water','butane'].forEach(s => { const o=document.createElement('option'); o.value=s; o.text=s||'All'; sp.add(o); });
+};
+</script>
+</body>
+</html>

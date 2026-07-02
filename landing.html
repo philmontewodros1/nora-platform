@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nora — gas & water, delivered</title>
+<meta name="description" content="Never run out of cooking gas or drinking water. Nora connects you to the nearest refill shop in Addis Ababa and swaps your empty for a full one at your door.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500;1,9..144,600&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  :root{
+    --ink:#0E1229;
+    --ink-2:#161B3A;
+    --ink-3:#1F2650;
+    --flame:#F5A93F;
+    --flame-deep:#E07B2A;
+    --water:#2FD1C5;
+    --water-deep:#1B8F86;
+    --paper:#F5F2EA;
+    --text-hi:#F5F2EA;
+    --text-lo:#9DA3C4;
+    --text-lo-2:#6D739A;
+    --radius:20px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--ink);
+    color:var(--text-hi);
+    font-family:'Manrope',sans-serif;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{font-family:'Fraunces',serif; font-weight:500; line-height:1.05; letter-spacing:-0.01em;}
+  em{font-style:italic; font-weight:500;}
+  a{color:inherit; text-decoration:none;}
+  .wrap{max-width:1180px; margin:0 auto; padding:0 28px;}
+  ::selection{background:var(--flame); color:var(--ink);}
+
+  /* -------- top bar -------- */
+  .topbar{
+    position:fixed; top:0; left:0; right:0; z-index:50;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:22px 28px;
+  }
+  .logo{
+    font-family:'Fraunces',serif; font-style:italic; font-weight:600;
+    font-size:22px; letter-spacing:0.01em; color:var(--text-hi);
+  }
+  .topbar .cta{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:'Manrope',sans-serif; font-weight:600; font-size:14px;
+    padding:10px 18px; border-radius:999px;
+    border:1px solid rgba(245,242,234,0.25);
+    color:var(--text-hi);
+    transition:border-color .2s ease, background .2s ease;
+  }
+  .topbar .cta:hover{background:rgba(245,242,234,0.08); border-color:rgba(245,242,234,0.5);}
+
+  /* -------- hero -------- */
+  .hero{
+    position:relative;
+    min-height:100svh;
+    display:flex; align-items:center;
+    padding-top:90px;
+    overflow:hidden;
+    background:
+      radial-gradient(ellipse 80% 60% at 15% 20%, rgba(245,169,63,0.14), transparent 60%),
+      radial-gradient(ellipse 70% 55% at 85% 75%, rgba(47,209,197,0.12), transparent 60%),
+      var(--ink);
+  }
+  .hero-grid{
+    display:grid; grid-template-columns:1.05fr 0.95fr; align-items:center; gap:20px;
+    width:100%;
+  }
+  #hero3d{
+    position:absolute; inset:0; width:100%; height:100%;
+    z-index:1; pointer-events:none;
+  }
+  .hero-content{position:relative; z-index:2;}
+  .eyebrow{
+    font-family:'JetBrains Mono',monospace; font-size:12.5px; letter-spacing:0.14em;
+    text-transform:uppercase; color:var(--text-lo);
+    display:flex; align-items:center; gap:10px; margin-bottom:22px;
+  }
+  .eyebrow::before{
+    content:''; width:7px; height:7px; border-radius:50%;
+    background:var(--flame); box-shadow:0 0 12px var(--flame);
+  }
+  .hero h1{
+    font-size:clamp(38px, 6vw, 68px);
+    color:var(--text-hi);
+    max-width:11.5ch;
+  }
+  .hero h1 em.flame{color:var(--flame);}
+  .hero h1 em.water{color:var(--water);}
+  .hero-sub{
+    margin-top:26px; font-size:17px; line-height:1.65; color:var(--text-lo);
+    max-width:46ch;
+  }
+  .cta-row{display:flex; flex-wrap:wrap; gap:14px; margin-top:38px;}
+  .cta{
+    display:inline-flex; align-items:center; gap:10px;
+    padding:15px 26px; border-radius:999px;
+    font-weight:700; font-size:15px;
+    transition:transform .25s cubic-bezier(.2,.8,.2,1), box-shadow .25s ease;
+  }
+  .cta:hover{transform:translateY(-2px);}
+  .cta svg{width:18px; height:18px; flex-shrink:0;}
+  .cta-telegram{
+    background:linear-gradient(135deg, var(--flame), var(--flame-deep));
+    color:#1A1204;
+    box-shadow:0 10px 30px -10px rgba(245,169,63,0.6);
+  }
+  .cta-whatsapp{
+    background:linear-gradient(135deg, var(--water), var(--water-deep));
+    color:#04211F;
+    box-shadow:0 10px 30px -10px rgba(47,209,197,0.55);
+  }
+  .scroll-cue{
+    position:absolute; bottom:34px; left:28px; z-index:2;
+    display:flex; align-items:center; gap:10px;
+    font-family:'JetBrains Mono',monospace; font-size:11.5px;
+    color:var(--text-lo-2); letter-spacing:0.08em; text-transform:uppercase;
+  }
+  .scroll-cue .line{width:36px; height:1px; background:var(--text-lo-2); position:relative; overflow:hidden;}
+  .scroll-cue .line::after{
+    content:''; position:absolute; left:-100%; top:0; width:100%; height:100%;
+    background:var(--flame); animation:cueMove 2.2s ease-in-out infinite;
+  }
+  @keyframes cueMove{
+    0%{left:-100%;} 50%{left:100%;} 100%{left:100%;}
+  }
+
+  /* -------- section shared -------- */
+  section{position:relative; padding:120px 0;}
+  .section-head{max-width:640px; margin-bottom:64px;}
+  .section-eyebrow{
+    font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.14em;
+    text-transform:uppercase; color:var(--flame); margin-bottom:14px;
+  }
+  .section-head h2{font-size:clamp(28px,4vw,42px); color:var(--text-hi);}
+  .section-head p{margin-top:16px; color:var(--text-lo); font-size:16px; line-height:1.65; max-width:52ch;}
+  .reveal{opacity:0; transform:translateY(28px); transition:opacity .8s ease, transform .8s cubic-bezier(.2,.8,.2,1);}
+  .reveal.in{opacity:1; transform:translateY(0);}
+
+  /* -------- how it works -------- */
+  .how{background:var(--ink-2);}
+  .steps{display:grid; grid-template-columns:repeat(3,1fr); gap:28px;}
+  .step{
+    background:var(--ink-3); border-radius:var(--radius); padding:34px 28px;
+    border:1px solid rgba(245,242,234,0.06);
+  }
+  .step .num{
+    font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--flame);
+    display:block; margin-bottom:22px; letter-spacing:0.05em;
+  }
+  .step h3{font-size:21px; font-weight:500; color:var(--text-hi); margin-bottom:12px;}
+  .step p{font-size:14.5px; line-height:1.6; color:var(--text-lo);}
+
+  /* -------- products -------- */
+  .cards{display:grid; grid-template-columns:repeat(3,1fr); gap:24px; perspective:1200px;}
+  .card{
+    position:relative; border-radius:var(--radius); padding:32px 26px 28px;
+    background:var(--ink-2); border:1px solid rgba(245,242,234,0.07);
+    transform-style:preserve-3d; will-change:transform;
+    transition:transform .12s ease, border-color .3s ease;
+    overflow:hidden;
+  }
+  .card::before{
+    content:''; position:absolute; inset:0; opacity:0; transition:opacity .35s ease;
+  }
+  .card-gas::before{background:radial-gradient(circle at 30% 20%, rgba(245,169,63,0.16), transparent 65%);}
+  .card-water::before{background:radial-gradient(circle at 30% 20%, rgba(47,209,197,0.16), transparent 65%);}
+  .card-butane::before{background:radial-gradient(circle at 30% 20%, rgba(180,150,245,0.14), transparent 65%);}
+  .card:hover::before{opacity:1;}
+  .card:hover{border-color:rgba(245,242,234,0.18);}
+  .card-icon{width:44px; height:44px; margin-bottom:26px; position:relative; z-index:1;}
+  .card h3{font-size:22px; font-weight:500; margin-bottom:8px; position:relative; z-index:1;}
+  .card .desc{font-size:14px; color:var(--text-lo); margin-bottom:22px; position:relative; z-index:1;}
+  .card .price{
+    font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--text-lo-2);
+    position:relative; z-index:1;
+  }
+  .card .price b{color:var(--text-hi); font-size:17px; font-weight:500;}
+
+  /* -------- trust / route -------- */
+  .trust{background:var(--ink-2);}
+  .trust-grid{display:grid; grid-template-columns:1fr 1fr; gap:60px; align-items:center;}
+  .route-svg{width:100%; height:auto;}
+  .route-dot{filter:drop-shadow(0 0 8px var(--flame));}
+
+  /* -------- final cta -------- */
+  .final-cta{
+    text-align:center;
+    background:radial-gradient(ellipse 60% 80% at 50% 0%, rgba(245,169,63,0.1), transparent 60%), var(--ink);
+  }
+  .final-cta h2{font-size:clamp(32px,5vw,52px); margin-bottom:20px;}
+  .final-cta p{color:var(--text-lo); font-size:16px; margin-bottom:40px;}
+  .final-cta .cta-row{justify-content:center;}
+
+  footer{
+    padding:44px 0 36px; border-top:1px solid rgba(245,242,234,0.08);
+    display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;
+  }
+  footer .logo{font-size:17px;}
+  footer .note{font-size:12.5px; color:var(--text-lo-2); font-family:'JetBrains Mono',monospace;}
+
+  @media (max-width:900px){
+    .hero-grid{grid-template-columns:1fr;}
+    #hero3d{opacity:0.55; height:60%; top:auto; bottom:0;}
+    .hero{padding-top:110px;}
+    .steps{grid-template-columns:1fr;}
+    .cards{grid-template-columns:1fr;}
+    .trust-grid{grid-template-columns:1fr; gap:36px;}
+    section{padding:80px 0;}
+    .topbar .cta span{display:none;}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto;}
+    .reveal{transition:none; opacity:1; transform:none;}
+    .scroll-cue .line::after{animation:none;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="logo">Nora</span>
+  <a class="cta cta-whatsapp" href="https://wa.me/251900000000" style="padding:9px 16px; font-size:13px;">
+    <span>Order now</span>
+  </a>
+</div>
+
+<section class="hero">
+  <canvas id="hero3d"></canvas>
+  <div class="wrap">
+    <div class="hero-grid">
+      <div class="hero-content">
+        <p class="eyebrow">Addis Ababa's gas &amp; water network</p>
+        <h1>Never run out<br>of <em class="flame">gas</em> or <em class="water">water</em> again</h1>
+        <p class="hero-sub">Nora connects you to the nearest refill shop and sends a rider with a full cylinder or jar — swapped for your empty one, right at your door.</p>
+        <div class="cta-row">
+          <a class="cta cta-telegram" href="https://t.me/Noraeth_bot" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.5 4.5 2.7 11.9c-1.2.5-1.2 1.2-.2 1.5l4.8 1.5 1.9 5.7c.2.6.4.8.9.8s.7-.2 1-.5l2.4-2.3 4.9 3.6c.9.6 1.6.3 1.8-.8L23.9 5.6c.3-1.4-.5-2-1.4-1.6z"/></svg>
+            Order on Telegram
+          </a>
+          <a class="cta cta-whatsapp" href="https://wa.me/251900000000" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.1-1.7-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.8 1-.9 1.2-.2.2-.3.2-.6.1-.3-.1-1.3-.5-2.4-1.5-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.1-.1.2-.3.3-.4.1-.2 0-.4 0-.5C10 9 9.4 7.6 9.1 7c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.3-1 1-1 2.4s1 2.8 1.1 3c.1.2 2 3.1 4.9 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.7-.7 1.9-1.3.2-.7.2-1.2.2-1.3-.1-.2-.3-.3-.6-.4z"/><path d="M12 2C6.5 2 2 6.5 2 12c0 1.9.5 3.7 1.5 5.3L2 22l4.9-1.3c1.5.8 3.2 1.3 5.1 1.3 5.5 0 10-4.5 10-10S17.5 2 12 2zm0 18.2c-1.7 0-3.4-.5-4.8-1.3l-.3-.2-3.2.8.9-3.1-.2-.3C3.5 14.7 3 13.4 3 12c0-4.9 4-9 9-9s9 4 9 9-4 9-9 9z"/></svg>
+            Order on WhatsApp
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="scroll-cue"><span>Scroll</span><span class="line"></span></div>
+</section>
+
+<section class="how">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="section-eyebrow">The swap, step by step</p>
+      <h2>Three visits become one</h2>
+      <p>No trip to the shop, no wondering who has stock. Here's exactly what happens after you order.</p>
+    </div>
+    <div class="steps">
+      <div class="step reveal">
+        <span class="num">01</span>
+        <h3>Tell us what you need</h3>
+        <p>Pick gas, water, or butane and your size — right inside Telegram or WhatsApp, no app to install.</p>
+      </div>
+      <div class="step reveal">
+        <span class="num">02</span>
+        <h3>A rider grabs a full one nearby</h3>
+        <p>From the closest shop already stocked and ready — no waiting on a refill to finish.</p>
+      </div>
+      <div class="step reveal">
+        <span class="num">03</span>
+        <h3>Swap at your door</h3>
+        <p>Hand over the empty, take the full one. One visit, done.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="products">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="section-eyebrow">What you can order</p>
+      <h2>Three things, one rider</h2>
+    </div>
+    <div class="cards">
+      <div class="card card-gas reveal" data-tilt>
+        <svg class="card-icon" viewBox="0 0 44 44" fill="none">
+          <rect x="14" y="10" width="16" height="26" rx="5" stroke="#F5A93F" stroke-width="2"/>
+          <path d="M18 10V6h8v4" stroke="#F5A93F" stroke-width="2" stroke-linecap="round"/>
+          <path d="M19 22c0 1.5 1 2 3 2s3 .5 3 2-1 2-3 2" stroke="#F5A93F" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+        <h3>Cooking gas</h3>
+        <p class="desc">6kg, 12kg, and 22kg cylinders. NOC, Ghion, and other brands matched to your existing cylinder.</p>
+        <p class="price">From <b>900 ETB</b></p>
+      </div>
+      <div class="card card-water reveal" data-tilt>
+        <svg class="card-icon" viewBox="0 0 44 44" fill="none">
+          <path d="M22 8c0 8-8 10-8 18a8 8 0 0 0 16 0c0-8-8-10-8-18z" stroke="#2FD1C5" stroke-width="2" stroke-linejoin="round"/>
+        </svg>
+        <h3>Drinking water</h3>
+        <p class="desc">Standard jars, swapped fresh from a shop near you — the same exchange, no waiting.</p>
+        <p class="price">From <b>120 ETB</b></p>
+      </div>
+      <div class="card card-butane reveal" data-tilt>
+        <svg class="card-icon" viewBox="0 0 44 44" fill="none">
+          <rect x="16" y="14" width="12" height="20" rx="4" stroke="#B996F5" stroke-width="2"/>
+          <rect x="19" y="8" width="6" height="7" rx="2" stroke="#B996F5" stroke-width="2"/>
+        </svg>
+        <h3>Butane canisters</h3>
+        <p class="desc">For camping stoves and portable burners. Light, quick, an easy add to any order.</p>
+        <p class="price">From <b>250 ETB</b></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="trust">
+  <div class="wrap">
+    <div class="trust-grid">
+      <div class="reveal">
+        <p class="section-eyebrow">Built on Addis's own shops</p>
+        <h2 style="font-size:clamp(26px,3.6vw,36px); margin-bottom:18px;">We don't run a gas plant.<br>We connect you to one nearby.</h2>
+        <p style="color:var(--text-lo); font-size:16px; line-height:1.7; max-width:46ch;">Every order routes to a real refill shop already working in your neighborhood — Kirkos, Bole, and more joining every week. Nora just handles the trip.</p>
+      </div>
+      <div class="reveal">
+        <svg class="route-svg" viewBox="0 0 420 220" fill="none">
+          <path id="routePath" d="M20 180 C 90 40, 180 200, 260 60 S 400 40, 400 40" stroke="#2A2F55" stroke-width="2" stroke-dasharray="2 10" stroke-linecap="round"/>
+          <circle cx="20" cy="180" r="6" fill="#2FD1C5"/>
+          <circle cx="400" cy="40" r="6" fill="#F5A93F"/>
+          <circle id="routeDot" class="route-dot" r="5" fill="#F5A93F"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="final-cta">
+  <div class="wrap">
+    <h2>Ready when you are.</h2>
+    <p>No account, no download — just message us and tell us what you need.</p>
+    <div class="cta-row">
+      <a class="cta cta-telegram" href="https://t.me/Noraeth_bot" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.5 4.5 2.7 11.9c-1.2.5-1.2 1.2-.2 1.5l4.8 1.5 1.9 5.7c.2.6.4.8.9.8s.7-.2 1-.5l2.4-2.3 4.9 3.6c.9.6 1.6.3 1.8-.8L23.9 5.6c.3-1.4-.5-2-1.4-1.6z"/></svg>
+        Order on Telegram
+      </a>
+      <a class="cta cta-whatsapp" href="https://wa.me/251900000000" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.1-1.7-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.8 1-.9 1.2-.2.2-.3.2-.6.1-.3-.1-1.3-.5-2.4-1.5-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.1-.1.2-.3.3-.4.1-.2 0-.4 0-.5C10 9 9.4 7.6 9.1 7c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.3-1 1-1 2.4s1 2.8 1.1 3c.1.2 2 3.1 4.9 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.7-.7 1.9-1.3.2-.7.2-1.2.2-1.3-.1-.2-.3-.3-.6-.4z"/><path d="M12 2C6.5 2 2 6.5 2 12c0 1.9.5 3.7 1.5 5.3L2 22l4.9-1.3c1.5.8 3.2 1.3 5.1 1.3 5.5 0 10-4.5 10-10S17.5 2 12 2zm0 18.2c-1.7 0-3.4-.5-4.8-1.3l-.3-.2-3.2.8.9-3.1-.2-.3C3.5 14.7 3 13.4 3 12c0-4.9 4-9 9-9s9 4 9 9-4 9-9 9z"/></svg>
+        Order on WhatsApp
+      </a>
+    </div>
+  </div>
+</section>
+
+<footer class="wrap">
+  <span class="logo">Nora</span>
+  <span class="note">Addis Ababa · prices shown are estimates and may vary by shop</span>
+</footer>
+
+<script>
+(function(){
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---- scroll reveal ---- */
+  var revealEls = document.querySelectorAll('.reveal');
+  if('IntersectionObserver' in window && !reduceMotion){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    }, {threshold:0.15});
+    revealEls.forEach(function(el){ io.observe(el); });
+  } else {
+    revealEls.forEach(function(el){ el.classList.add('in'); });
+  }
+
+  /* ---- card tilt ---- */
+  if(!reduceMotion && window.matchMedia('(hover:hover)').matches){
+    document.querySelectorAll('[data-tilt]').forEach(function(card){
+      card.addEventListener('mousemove', function(e){
+        var r = card.getBoundingClientRect();
+        var x = (e.clientX - r.left) / r.width - 0.5;
+        var y = (e.clientY - r.top) / r.height - 0.5;
+        card.style.transform = 'rotateY(' + (x*8) + 'deg) rotateX(' + (-y*8) + 'deg) translateZ(0)';
+      });
+      card.addEventListener('mouseleave', function(){
+        card.style.transform = 'rotateY(0deg) rotateX(0deg)';
+      });
+    });
+  }
+
+  /* ---- animated route dot ---- */
+  var path = document.getElementById('routePath');
+  var dot = document.getElementById('routeDot');
+  if(path && dot && !reduceMotion){
+    var len = path.getTotalLength();
+    var t0 = performance.now();
+    function animateDot(now){
+      var t = ((now - t0) / 3200) % 1;
+      var p = path.getPointAtLength(t * len);
+      dot.setAttribute('cx', p.x);
+      dot.setAttribute('cy', p.y);
+      requestAnimationFrame(animateDot);
+    }
+    requestAnimationFrame(animateDot);
+  } else if(path && dot){
+    var mid = path.getPointAtLength(path.getTotalLength()*0.5);
+    dot.setAttribute('cx', mid.x);
+    dot.setAttribute('cy', mid.y);
+  }
+
+  /* ---- 3D hero scene ---- */
+  var canvas = document.getElementById('hero3d');
+  if(!canvas || typeof THREE === 'undefined') return;
+
+  var heroSection = document.querySelector('.hero');
+  var renderer = new THREE.WebGLRenderer({canvas:canvas, alpha:true, antialias:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
+  camera.position.set(0, 0.4, 9);
+
+  var ambient = new THREE.AmbientLight(0x2a3060, 1.1);
+  scene.add(ambient);
+  var flameLight = new THREE.PointLight(0xF5A93F, 2.4, 14);
+  flameLight.position.set(-2.4, 1.6, 3);
+  scene.add(flameLight);
+  var waterLight = new THREE.PointLight(0x2FD1C5, 2.2, 14);
+  waterLight.position.set(2.6, -1, 3);
+  scene.add(waterLight);
+  var rim = new THREE.DirectionalLight(0xffffff, 0.35);
+  rim.position.set(0, 4, -4);
+  scene.add(rim);
+
+  var group = new THREE.Group();
+  scene.add(group);
+
+  /* gas cylinder */
+  var cylGroup = new THREE.Group();
+  var bodyGeo = new THREE.CylinderGeometry(0.85, 0.85, 2.5, 40);
+  var bodyMat = new THREE.MeshStandardMaterial({color:0xE8792C, metalness:0.35, roughness:0.35});
+  var body = new THREE.Mesh(bodyGeo, bodyMat);
+  cylGroup.add(body);
+  var capGeo = new THREE.CylinderGeometry(0.55, 0.7, 0.4, 32);
+  var capMat = new THREE.MeshStandardMaterial({color:0x2A2F55, metalness:0.5, roughness:0.4});
+  var cap = new THREE.Mesh(capGeo, capMat);
+  cap.position.y = 1.45;
+  cylGroup.add(cap);
+  var valveGeo = new THREE.CylinderGeometry(0.14, 0.14, 0.35, 20);
+  var valve = new THREE.Mesh(valveGeo, capMat);
+  valve.position.y = 1.85;
+  cylGroup.add(valve);
+  var ringGeo = new THREE.TorusGeometry(0.5, 0.07, 12, 32);
+  var ring = new THREE.Mesh(ringGeo, capMat);
+  ring.position.y = 1.25;
+  ring.rotation.x = Math.PI/2;
+  cylGroup.add(ring);
+  cylGroup.position.set(-1.7, 0, 0);
+  group.add(cylGroup);
+
+  /* water jug */
+  var jugGroup = new THREE.Group();
+  var jugMat = new THREE.MeshStandardMaterial({color:0x1B8F86, metalness:0.1, roughness:0.25, transparent:true, opacity:0.88});
+  var jugBodyGeo = new THREE.SphereGeometry(0.95, 32, 24);
+  var jugBody = new THREE.Mesh(jugBodyGeo, jugMat);
+  jugBody.scale.set(1, 1.25, 1);
+  jugGroup.add(jugBody);
+  var neckGeo = new THREE.CylinderGeometry(0.32, 0.42, 0.5, 24);
+  var neck = new THREE.Mesh(neckGeo, jugMat);
+  neck.position.y = 1.28;
+  jugGroup.add(neck);
+  var capGeo2 = new THREE.CylinderGeometry(0.36, 0.36, 0.18, 24);
+  var jugCap = new THREE.Mesh(capGeo2, new THREE.MeshStandardMaterial({color:0x2A2F55, metalness:0.4, roughness:0.5}));
+  jugCap.position.y = 1.6;
+  jugGroup.add(jugCap);
+  jugGroup.position.set(1.9, -0.2, -0.6);
+  jugGroup.scale.set(0.85, 0.85, 0.85);
+  group.add(jugGroup);
+
+  function resize(){
+    var w = heroSection.clientWidth;
+    var h = heroSection.clientHeight;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  var mouseX = 0, mouseY = 0;
+  window.addEventListener('mousemove', function(e){
+    mouseX = (e.clientX / window.innerWidth - 0.5);
+    mouseY = (e.clientY / window.innerHeight - 0.5);
+  });
+
+  var visible = true;
+  if('IntersectionObserver' in window){
+    var heroIO = new IntersectionObserver(function(entries){
+      visible = entries[0].isIntersecting;
+    }, {threshold:0.05});
+    heroIO.observe(heroSection);
+  }
+
+  var start = performance.now();
+  function tick(now){
+    requestAnimationFrame(tick);
+    if(!visible) return;
+    var t = (now - start) / 1000;
+
+    if(!reduceMotion){
+      cylGroup.rotation.y = t * 0.35;
+      jugGroup.rotation.y = -t * 0.3 + 1;
+      cylGroup.position.y = Math.sin(t * 0.9) * 0.12;
+      jugGroup.position.y = -0.2 + Math.sin(t * 0.8 + 1.4) * 0.14;
+      group.rotation.y = mouseX * 0.25;
+      group.rotation.x = mouseY * 0.12;
+      flameLight.intensity = 2.2 + Math.sin(t * 6) * 0.3;
+    }
+
+    renderer.render(scene, camera);
+  }
+  requestAnimationFrame(tick);
+})();
+</script>
+
+</body>
+</html>

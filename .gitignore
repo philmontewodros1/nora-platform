@@ -1,0 +1,12 @@
+# Secrets and local state — never commit
+.env
+*.db
+*.db-journal
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# OS/editor noise
+.DS_Store
+*.swp
