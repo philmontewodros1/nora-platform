@@ -1,5 +1,8 @@
 # Deploying Nora online for free (2026)
 
+> **Status: live.** Deployed at https://nora-platform.onrender.com, Telegram
+> webhook wired to `@Noraeth_bot`, database on Neon (persistent).
+
 This replaces the deployment section in the original README — Render changed their free tier
 partway through this build (free background workers were removed), so the architecture below
 is different from earlier drafts. Read this version.
