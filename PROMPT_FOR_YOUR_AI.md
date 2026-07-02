@@ -14,24 +14,21 @@ disconnected from each other. Nora connects customers to the nearest shop with s
 to fetch a full cylinder/jar and swap it for the customer's empty one at the doorstep (an exchange
 model, not manufacture-and-deliver), and returns the empty to the shop afterward.
 
-The project is a **working, tested platform**, deployable entirely for free as a **single web
-service** (see `DEPLOY-FREE-ONLINE.md` — read it before deploying anything; Render's free tier
-changed and no longer includes free background workers):
+The project is a **working, tested, safety-hardened platform**, deployed live on free-tier infrastructure (see `DEPLOY-FREE-ONLINE.md` and `SYSTEM-REPORT.md`):
 
-- A FastAPI backend (SQLite locally, swappable to free permanent Postgres via Neon) that is the
-  single source of truth for orders, shops, stock, riders, customers, pricing, and payments.
-- Telegram bot logic implemented as a **webhook** (`backend/telegram_router.py`), mounted directly
-  into the main app — not a separate always-running process.
-- WhatsApp Cloud API logic also implemented as a webhook (`backend/whatsapp_router.py`), mounted
-  the same way.
+- FastAPI backend on Render (free web service) + Neon (free permanent Postgres).
+- Telegram bot logic as a **webhook** (`backend/telegram_router.py`), mounted into the app.
+- WhatsApp Cloud API logic also as a webhook (`backend/whatsapp_router.py`), mounted the same way.
 - A plain HTML/JS admin dashboard (no build step) served by the backend at `/admin`.
-- A marketing landing page (`landing.html`) served by the backend at `/` (apex URL).
+- A marketing landing page (`landing.html`) served at `/` (apex URL) + on Surge.
 
 All of this is **ONE deployable app** (`backend/main.py` mounts both routers and serves the
-landing + admin). One free Render web service covers the whole platform. The `telegram_bot/` and
-`whatsapp_bot/` folders still contain the original standalone polling/webhook versions — those are
-now optional, useful only for local testing without a public URL. Don't deploy those separately;
-the merged versions in `backend/` are the production path.
+landing + admin). One free Render web service covers the whole platform.
+
+**Safety hardening (already done — keep it intact):**
+- `payments_guard.py` — online payment methods only offered/marked paid when `PAYMENTS_LIVE=true` + a provider webhook secret is set. Until then, cash-only. Do not remove the `mark_paid_is_safe()` check in `services.place_order`.
+- `security_checks.py` — startup warnings + `/admin/security-check` endpoint (admin-protected). **Route ordering gotcha:** `/admin/security-check` MUST be defined before `app.mount("/admin", StaticFiles(...))`, or the static server intercepts it (404). Any new `/admin/*` route belongs above that mount line too.
+- Admin credentials, `ADMIN_TELEGRAM_CHAT_ID`, and `DATABASE_URL` (Neon) are set as Render env vars.
 
 ## Project structure
 
@@ -104,24 +101,12 @@ PROMPT_FOR_YOUR_AI.md           This file.
 
 ## What's still placeholder (be honest about these before going live)
 
-1. **Real payment collection.** `payments.py` is the single swap point: `initiate_payment` /
-   `verify_payment` currently return a fake reference and mark orders paid without an actual
-   TeleBirr/CBE Birr charge. Wire the real merchant API there (the rest of the flow keeps working
-   unchanged). You need merchant-account docs from your provider rep — they're not public.
-2. **Prices.** `pricing.py` still uses the illustrative figures from the business plan (gas 12kg
-   1,700, etc.). Replace with real shop prices from the pilot. If you change one here, update the
-   spec doc's example copy and the landing page cards to match.
-3. **Admin alert channel.** `ADMIN_TELEGRAM_CHAT_ID` is unset — create a Telegram channel, add the
-   bot as admin, and set the chat id for stock-mismatch / stalled-delivery alerts to fire.
-4. **WhatsApp production readiness.** WhatsApp works end to end in code, but Meta must verify the
-   business before it works for anyone beyond test numbers, and notifications sent >24h after the
-   customer's last message need pre-approved templates (spec section 3.4). Telegram has none of
-   these limits — launch Telegram first.
-5. **Multi-instance sessions.** The Telegram/WhatsApp in-memory session dicts are fine for a
-   single free-tier instance; if you scale to multiple workers, move sessions to the DB.
-6. **Landing page contact details.** `landing.html` has the real Telegram bot username wired in
-   (`@Noraeth_bot`), but the WhatsApp number (`wa.me/251900000000`) is still a placeholder — set
-   your real WhatsApp business number there before launch.
+1. **Real payment collection.** The guard is in place — cash-on-delivery is real and safe. To enable online payment (TeleBirr/CBE), wire the real merchant API into `payments.py` (`initiate_payment` / `verify_payment`), then set `PAYMENTS_LIVE=true` and `TELEBIRR_WEBHOOK_SECRET` / `CBE_WEBHOOK_SECRET` in Render. The rest of the flow keeps working unchanged. You need merchant-account docs from your provider rep — they're not public.
+2. **Prices.** `pricing.py` uses the illustrative figures from the business plan (gas 12kg 1,700, etc.). Replace with real shop prices from the pilot. If you change one here, update the spec doc's example copy and the landing page cards to match.
+3. **WhatsApp production readiness.** WhatsApp works end to end in code, but Meta must verify the business before it works for anyone beyond test numbers, and notifications sent >24h after the customer's last message need pre-approved templates (spec section 3.4). Telegram has none of these limits — launch Telegram first.
+4. **Multi-instance sessions.** The Telegram/WhatsApp in-memory session dicts are fine for a single free-tier instance; if you scale to multiple workers, move sessions to the DB.
+5. **Landing page contact details.** The Telegram bot username is wired in (`@Noraeth_bot`), but the WhatsApp number (`wa.me/251900000000`) is still a placeholder — set your real WhatsApp business number there before launch.
+6. **Tighten `ALLOWED_ORIGINS`** from `*` to your real Render domain before real customers.
 
 ## How I want you to work
 
@@ -146,8 +131,9 @@ PROMPT_FOR_YOUR_AI.md           This file.
   }'
   curl http://localhost:8000/orders/1
   ```
-  A successful response includes a `shop_id`, `total_price: 1850.0`, `paid: true`, and
-  `status: "assigned"`.
+  A successful response includes a `shop_id`, `total_price: 1850.0`, and `status: "assigned"`
+  (if a rider is on duty). With `PAYMENTS_LIVE` unset, `paid` is `false` even for telebirr —
+  that's the guard working correctly, not a bug.
 - Read `DEPLOY-FREE-ONLINE.md` for the deployment steps (Render + Neon, all free tier) before
   suggesting alternative hosting — I want to launch for free first and upgrade only once there's
   real order volume.
