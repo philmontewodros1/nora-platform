@@ -28,6 +28,7 @@ import schemas
 import services
 import crud
 import pricing
+import payments_guard
 from database import SessionLocal
 
 router = APIRouter()
@@ -303,10 +304,12 @@ async def _ask_payment(chat_id, session, db):
     lines.append("⏱ Estimated pickup: 15–25 minutes once confirmed")
     lines.append("\n<b>How would you like to pay?</b>")
 
+    # Payment methods come from the guard: only cash is offered until
+    # PAYMENTS_LIVE + a real provider webhook secret are configured. This is the
+    # actual fix for the false-paid bug, not a config comment.
+    methods = payments_guard.available_payment_methods()
     send_text(chat_id, "\n".join(lines), [
-        [btn(PAYMENT_LABELS["telebirr"], "pay:telebirr")],
-        [btn(PAYMENT_LABELS["cbe"], "pay:cbe")],
-        [btn(PAYMENT_LABELS["cash"], "pay:cash")],
+        [btn(m["label"], f"pay:{m['id']}")] for m in methods
     ])
 
 

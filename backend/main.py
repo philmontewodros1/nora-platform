@@ -14,6 +14,8 @@ import schemas
 import crud
 import payments
 import services
+import payments_guard
+import security_checks
 from database import engine, get_db, Base
 from notifications import notify_customer_status, check_stalled_deliveries
 import telegram_router
@@ -24,6 +26,9 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(title="Nora API")
 app.include_router(telegram_router.router)
 app.include_router(whatsapp_router.router)
+
+# Log safety warnings (default creds, unset alert chat id, payment-stub state) on every boot.
+security_checks.log_startup_warnings()
 
 # CORS: tighten to your real domains before going live. Set ALLOWED_ORIGINS env
 # var as a comma-separated list, e.g. "https://nora.onrender.com,https://app.nora.et"
@@ -375,6 +380,13 @@ def admin_report(db: Session = Depends(get_db), _=Depends(require_admin)):
         "avg_delivery_minutes": avg_mins,
         "delivered_count": len(delivered),
     }
+
+
+@app.get("/admin/security-check")
+def admin_security_check(_=Depends(require_admin)):
+    """Safety status visible from the dashboard. MUST be defined before the
+    /admin static mount below, or the static file server intercepts it (404)."""
+    return {"warnings": security_checks.run_checks()}
 
 
 # ---------------- Serve the admin web dashboard as static files ----------------

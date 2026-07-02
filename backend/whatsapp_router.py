@@ -23,6 +23,7 @@ import schemas
 import services
 import crud
 import pricing
+import payments_guard
 from database import SessionLocal
 
 router = APIRouter()
@@ -230,9 +231,11 @@ async def handle_reply(from_number: str, reply_id: str, session: dict, db: Sessi
 
 
 def _ask_payment(to, session):
-    send_buttons(to, f"{price_summary(session)}\n\nHow would you like to pay?", [
-        ("pay_telebirr", "TeleBirr"), ("pay_cbe", "CBE Birr"), ("pay_cash", "Cash on delivery"),
-    ])
+    # Only cash is offered until PAYMENTS_LIVE + a provider webhook secret are set
+    # (payments_guard). Prevents offering a fake online payment option.
+    methods = payments_guard.available_payment_methods()
+    send_buttons(to, f"{price_summary(session)}\n\nHow would you like to pay?",
+                 [(f"pay_{m['id']}", m["label"]) for m in methods])
 
 
 def price_summary(d: dict) -> str:

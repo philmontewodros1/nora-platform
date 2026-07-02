@@ -14,6 +14,7 @@ import models
 import schemas
 import crud
 import payments
+import payments_guard
 from ratelimit import order_limiter
 from notifications import (
     notify_customer_status, notify_customer_payment_failed,
@@ -34,7 +35,10 @@ def place_order(db: Session, payload: schemas.OrderCreate, rate_key: str | None 
         payments.initiate_payment(order, method)
         db.commit()
         db.refresh(order)
-        if method != models.PaymentMethod.cash:
+        # Hard stop against the false-paid bug: only mark paid if the online method
+        # is genuinely wired (PAYMENTS_LIVE + provider webhook secret). Cash is never
+        # marked paid here -- the rider marks it paid on delivery (see deliver_order).
+        if method != models.PaymentMethod.cash and payments_guard.mark_paid_is_safe(method.value):
             order.paid = True
             db.commit()
             db.refresh(order)
